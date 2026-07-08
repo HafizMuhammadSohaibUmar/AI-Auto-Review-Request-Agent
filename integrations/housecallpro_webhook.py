@@ -1,22 +1,23 @@
 """Housecall Pro webhook validation and payload normalization."""
-import hmac
-import hashlib
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 
 from config import get_settings
+from integrations.webhook_security import require_hmac_signature
 from models.review_request import JobCompletedEvent
 from utils import normalize_phone
 
 
 async def parse_housecallpro_event(request: Request) -> JobCompletedEvent:
+    settings = get_settings()
     body = await request.body()
-    signature = request.headers.get("X-HousecallPro-Signature", "")
-    secret = get_settings().housecallpro_webhook_secret.encode()
-    if secret:
-        expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(signature, expected):
-            raise HTTPException(status_code=403, detail="Invalid Housecall Pro signature")
+    signature = request.headers.get(settings.housecallpro_signature_header, "")
+    require_hmac_signature(
+        body=body,
+        signature=signature,
+        secret=settings.housecallpro_webhook_secret,
+        provider="Housecall Pro",
+    )
     payload = await request.json()
     customer = payload.get("customer", {})
     job = payload.get("job", payload)

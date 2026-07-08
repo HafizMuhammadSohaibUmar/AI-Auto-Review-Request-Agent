@@ -12,9 +12,11 @@ from integrations.housecallpro_webhook import parse_housecallpro_event
 from integrations.jobber_webhook import parse_jobber_event
 from integrations.supabase_client import supabase_client
 from integrations.twilio_client import twilio_client, validate_twilio_request
+from integrations.webhook_security import require_api_key, require_hmac_signature
 from logging_utils import log_event, setup_logging
 from models.review_request import JobCompletedEvent
 from scheduler import start_scheduler, stop_scheduler
+from services.review_tracker import review_tracker
 from services.sentiment import health_check as sentiment_health_check
 from utils import normalize_phone
 
@@ -57,13 +59,25 @@ async def housecallpro_job_completed(request: Request):
 
 
 @app.post("/webhook/job-completed")
-async def generic_job_completed(event: JobCompletedEvent):
+async def generic_job_completed(request: Request):
+    settings = get_settings()
+    body = await request.body()
+    require_hmac_signature(
+        body=body,
+        signature=request.headers.get("X-LeadPilot-Signature", ""),
+        secret=settings.internal_webhook_secret,
+        provider="LeadPilot internal",
+    )
+    event = JobCompletedEvent.model_validate_json(body)
     event.customer_phone = normalize_phone(event.customer_phone)
     return await handle_job_completed(event)
 
 
 @app.post("/manual-trigger")
-async def manual_trigger(event: JobCompletedEvent):
+async def manual_trigger(request: Request):
+    settings = get_settings()
+    require_api_key(request, expected=settings.manual_trigger_api_key)
+    event = JobCompletedEvent.model_validate(await request.json())
     event.provider = "manual"
     event.customer_phone = normalize_phone(event.customer_phone)
     return await handle_job_completed(event)
@@ -88,14 +102,18 @@ async def metrics():
 
 @app.get("/health")
 async def health():
-    sentiment, db, twilio = await sentiment_health_check(), await supabase_client.health_check(), await twilio_client.health_check()
-    all_ok = sentiment.get("ok") and db.get("ok") and twilio.get("ok")
+    sentiment = await sentiment_health_check()
+    db = await supabase_client.health_check()
+    twilio = await twilio_client.health_check()
+    reviews = await review_tracker.health_check()
+    all_ok = sentiment.get("ok") and db.get("ok") and twilio.get("ok") and reviews.get("ok")
     return {
         "status": "healthy" if all_ok else "degraded",
         "business_id": get_settings().business_id,
         "sentiment": sentiment,
         "database": db,
         "twilio": twilio,
+        "review_tracker": reviews,
     }
 
 

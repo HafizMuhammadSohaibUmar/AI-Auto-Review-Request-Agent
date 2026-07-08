@@ -19,12 +19,12 @@ async def run_followup_check() -> dict:
         if await supabase_client.is_suppressed(phone):
             skipped += 1
             continue
-        if await review_tracker.has_review_for_job(phone, row["job_id"]):
+        if await review_tracker.has_review_for_request(row):
             skipped += 1
             continue
         sms_sent = await twilio_client.send_sms(
             phone,
-            followup_sms(row["customer_name"], row["job_type"]),
+            followup_sms(row["customer_name"], row["job_type"], row["technician_name"]),
             job_id=row["job_id"],
         )
         if not sms_sent:

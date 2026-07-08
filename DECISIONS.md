@@ -31,7 +31,9 @@ If sentiment classification fails, the handler defaults to `NEUTRAL`. That sends
 
 ## Webhook Security
 
-Jobber and Housecall Pro payloads are validated with HMAC SHA-256 signatures before parsing. Each provider has a separate secret so one integration can be rotated without changing the other.
+Jobber and Housecall Pro payloads are validated with HMAC SHA-256 signatures before parsing. Each provider has a separate secret and configurable signature header so one integration can be rotated or adjusted without changing the other.
+
+The generic `/webhook/job-completed` endpoint is also protected with an internal HMAC secret. `/manual-trigger` is protected by an API key header. This keeps demo and test surfaces useful without leaving unauthenticated production write paths open.
 
 Twilio inbound SMS signatures are also validated by default for `/sms/reply`. Local testing can disable this with `VALIDATE_TWILIO_SIGNATURE=false`.
 
@@ -55,7 +57,9 @@ Each job can receive at most one follow-up, after 48 hours. Follow-ups are skipp
 - the request was already followed up
 - a review is detected for the job
 
-The `ReviewTracker` service is the integration boundary for Google Business Profile review detection. The first production version can run safely without paid vendors; GBP review polling can be connected behind this service without changing the handlers.
+`ReviewTracker` calls the Google Business Profile reviews API when `GBP_ACCOUNT_ID`, `GBP_LOCATION_ID`, and `GBP_ACCESS_TOKEN` are configured. The official GBP reviews list endpoint returns reviews for a verified location, but reviews do not include the FSM job id or customer phone. The tracker therefore matches by customer display name and review timing after the review request.
+
+If GBP OAuth credentials are not configured, the service reports `configured: false` in `/health`. That is acceptable for local demos, but a live deployment should configure GBP OAuth to satisfy the no-review follow-up requirement.
 
 ## Testing Strategy
 
@@ -66,3 +70,5 @@ The tests focus on the branches that change user-visible behavior:
 - negative sentiment sends private feedback and an owner alert
 - 90-day dedup skips SMS
 - follow-up sends only when due and not suppressed
+- follow-up skips when GBP review detection finds a matching customer review
+- generic and manual trigger endpoints reject invalid credentials

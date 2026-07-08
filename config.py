@@ -29,9 +29,17 @@ class Settings(BaseSettings):
     supabase_key: str = ""
 
     gbp_place_id: str = ""
+    gbp_account_id: str = ""
+    gbp_location_id: str = ""
+    gbp_access_token: str = ""
+    gbp_review_match_window_days: int = 14
 
     jobber_webhook_secret: str = ""
+    jobber_signature_header: str = "X-Jobber-Signature"
     housecallpro_webhook_secret: str = ""
+    housecallpro_signature_header: str = "X-HousecallPro-Signature"
+    internal_webhook_secret: str = ""
+    manual_trigger_api_key: str = ""
 
     dedup_window_days: int = 90
     followup_delay_hours: int = 48

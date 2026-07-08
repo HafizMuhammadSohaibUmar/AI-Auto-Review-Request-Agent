@@ -1,22 +1,23 @@
 """Jobber webhook validation and payload normalization."""
-import hmac
-import hashlib
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 
 from config import get_settings
+from integrations.webhook_security import require_hmac_signature
 from models.review_request import JobCompletedEvent
 from utils import normalize_phone
 
 
 async def parse_jobber_event(request: Request) -> JobCompletedEvent:
+    settings = get_settings()
     body = await request.body()
-    signature = request.headers.get("X-Jobber-Signature", "")
-    secret = get_settings().jobber_webhook_secret.encode()
-    if secret:
-        expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(signature, expected):
-            raise HTTPException(status_code=403, detail="Invalid Jobber signature")
+    signature = request.headers.get(settings.jobber_signature_header, "")
+    require_hmac_signature(
+        body=body,
+        signature=signature,
+        secret=settings.jobber_webhook_secret,
+        provider="Jobber",
+    )
     payload = await request.json()
     data = payload.get("data", payload)
     return JobCompletedEvent(

@@ -21,6 +21,8 @@ os.environ.update({
     "GBP_PLACE_ID": "place123",
     "JOBBER_WEBHOOK_SECRET": "jobber_secret",
     "HOUSECALLPRO_WEBHOOK_SECRET": "hcp_secret",
+    "INTERNAL_WEBHOOK_SECRET": "internal_secret",
+    "MANUAL_TRIGGER_API_KEY": "manual_key",
 })
 
 import pytest

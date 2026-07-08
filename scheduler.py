@@ -1,10 +1,26 @@
 """APScheduler setup for follow-up processing."""
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+try:
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+except ImportError:
+    AsyncIOScheduler = None
 
 from handlers.followup import run_followup_check
 
 
-scheduler = AsyncIOScheduler()
+class DisabledScheduler:
+    running = False
+
+    def add_job(self, *args, **kwargs) -> None:
+        return None
+
+    def start(self) -> None:
+        return None
+
+    def shutdown(self, wait: bool = False) -> None:
+        return None
+
+
+scheduler = AsyncIOScheduler() if AsyncIOScheduler else DisabledScheduler()
 
 
 def start_scheduler() -> None:

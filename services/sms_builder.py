@@ -17,7 +17,8 @@ def negative_feedback_sms(event: JobCompletedEvent) -> str:
     settings = get_settings()
     return (
         f"Hi {event.customer_name}, thank you for trusting {settings.business_name} "
-        f"with your {event.job_type}. We want every visit to feel handled properly. "
+        f"with your {event.job_type}. {event.technician_name} shared the visit details, "
+        f"and we want every visit to feel handled properly. "
         f"If anything could have gone better, please reply here and our owner will review it. "
         f"- {settings.business_name}"
     )
@@ -32,10 +33,11 @@ def owner_alert_sms(event: JobCompletedEvent, sentiment: str) -> str:
     )
 
 
-def followup_sms(customer_name: str, job_type: str) -> str:
+def followup_sms(customer_name: str, job_type: str, technician_name: str) -> str:
     settings = get_settings()
     return (
         f"Hi {customer_name}, just checking in once more after your {job_type}. "
+        f"{technician_name} was glad to help. "
         f"If our team did a good job, your Google review would really help us: "
         f"{settings.google_review_url} - {settings.business_name}"
     )
