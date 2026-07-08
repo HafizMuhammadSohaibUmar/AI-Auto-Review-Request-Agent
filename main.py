@@ -3,8 +3,10 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Request, Response
+from fastapi.responses import HTMLResponse
 
 from config import get_settings
+from handlers.demo import demo_page, demo_trigger
 from handlers.followup import run_followup_check
 from handlers.job_completed import handle_job_completed
 from handlers.sms_reply import handle_sms_reply
@@ -44,6 +46,16 @@ async def root():
         "docs": "/docs",
         "health": "/health",
     }
+
+
+@app.get("/demo", response_class=HTMLResponse)
+async def browser_demo():
+    return await demo_page()
+
+
+@app.post("/demo/trigger")
+async def browser_demo_trigger(request: Request):
+    return await demo_trigger(request)
 
 
 @app.post("/webhook/job-completed/jobber")

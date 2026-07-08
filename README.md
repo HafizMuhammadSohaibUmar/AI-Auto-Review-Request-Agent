@@ -35,6 +35,8 @@ This service listens for completed-job events, validates the source, classifies 
 | `POST /webhook/job-completed/housecallpro` | Housecall Pro completed-job webhook with HMAC validation |
 | `POST /webhook/job-completed` | Generic JSON webhook with `X-LeadPilot-Signature` HMAC validation |
 | `POST /manual-trigger` | Manual test trigger protected by `X-LeadPilot-Key` |
+| `GET /demo` | Browser demo for completed-job scenarios |
+| `POST /demo/trigger` | Demo trigger; dry-run SMS by default |
 | `POST /sms/reply` | Twilio inbound SMS reply webhook for STOP handling |
 | `POST /followup/run` | Manual follow-up runner |
 | `GET /metrics` | 7-day review request metrics |
@@ -76,6 +78,25 @@ Manual tests call `/manual-trigger` with:
 ```text
 X-LeadPilot-Key: <MANUAL_TRIGGER_API_KEY>
 ```
+
+## Live Demo Without Vendor Accounts
+
+The service includes a browser demo at:
+
+```text
+GET /demo
+```
+
+The demo uses the same completed-job workflow as production: phone normalization, suppression checks, 90-day deduplication, sentiment classification, routing, Supabase logging, and metrics. It does not require a Jobber account, Housecall Pro account, or verified Google Business Profile.
+
+For public demos, use:
+
+```text
+SMS_DRY_RUN=true
+DEMO_MODE_ENABLED=true
+```
+
+In dry-run mode, the app shows the exact SMS that would be sent without sending through Twilio. This is useful for Twilio trial accounts and recruiter testing. For live SMS demos, set `SMS_DRY_RUN=false`; `/demo/trigger` then requires `X-LeadPilot-Key` to avoid unauthenticated SMS sends.
 
 ## Google Review Tracking
 

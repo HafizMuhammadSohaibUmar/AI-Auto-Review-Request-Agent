@@ -21,6 +21,11 @@ class TwilioClient:
         self.api_base = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}"
 
     async def send_sms(self, to: str, body: str, *, job_id: Optional[str] = None) -> bool:
+        settings = get_settings()
+        if settings.sms_dry_run:
+            log_event(logger, "SMS dry run", action="sms_dry_run", job_id=job_id,
+                      phone=to, body_preview=body[:160])
+            return True
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 with Timer() as timer:
@@ -39,6 +44,8 @@ class TwilioClient:
             return False
 
     async def health_check(self) -> dict:
+        if get_settings().sms_dry_run:
+            return {"ok": True, "mode": "dry_run"}
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 with Timer() as timer:

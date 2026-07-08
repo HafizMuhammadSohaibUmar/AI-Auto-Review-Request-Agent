@@ -37,6 +37,12 @@ The generic `/webhook/job-completed` endpoint is also protected with an internal
 
 Twilio inbound SMS signatures are also validated by default for `/sms/reply`. Local testing can disable this with `VALIDATE_TWILIO_SIGNATURE=false`.
 
+## Demo Mode
+
+The live demo uses `/demo` and `/demo/trigger` instead of pretending to have a Jobber, Housecall Pro, or Google Business Profile account. This keeps the demo honest while still exercising the real agent workflow: completed-job input, phone normalization, suppression checks, deduplication, sentiment classification, routing, Supabase logging, and SMS generation.
+
+`SMS_DRY_RUN=true` is recommended for public demos and Twilio trial accounts. The app returns the exact SMS preview without sending real messages. If `SMS_DRY_RUN=false`, `/demo/trigger` requires `X-LeadPilot-Key` so the public demo cannot be abused to send SMS.
+
 ## Phone Handling
 
 Customer numbers are normalized to E.164 before suppression checks, dedup checks, logging, and SMS sending. The default country is US because the target home-service market and Twilio setup are US-first.
@@ -72,3 +78,4 @@ The tests focus on the branches that change user-visible behavior:
 - follow-up sends only when due and not suppressed
 - follow-up skips when GBP review detection finds a matching customer review
 - generic and manual trigger endpoints reject invalid credentials
+- browser demo returns realistic SMS previews without requiring vendor accounts

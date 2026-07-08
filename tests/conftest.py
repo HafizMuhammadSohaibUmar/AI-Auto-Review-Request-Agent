@@ -15,6 +15,7 @@ os.environ.update({
     "TWILIO_PHONE_NUMBER": "+15550001111",
     "OWNER_PHONE_NUMBER": "+15550002222",
     "VALIDATE_TWILIO_SIGNATURE": "true",
+    "SMS_DRY_RUN": "true",
     "MISTRAL_API_KEY": "test_mistral",
     "SUPABASE_URL": "https://test.supabase.co",
     "SUPABASE_KEY": "sb_test",
@@ -23,6 +24,7 @@ os.environ.update({
     "HOUSECALLPRO_WEBHOOK_SECRET": "hcp_secret",
     "INTERNAL_WEBHOOK_SECRET": "internal_secret",
     "MANUAL_TRIGGER_API_KEY": "manual_key",
+    "DEMO_MODE_ENABLED": "true",
 })
 
 import pytest

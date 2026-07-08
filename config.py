@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     twilio_phone_number: str = ""
     owner_phone_number: str = ""
     validate_twilio_signature: bool = True
+    sms_dry_run: bool = False
 
     mistral_api_key: str = ""
     sentiment_model: str = "mistral/ministral-3b-latest"
@@ -40,6 +41,7 @@ class Settings(BaseSettings):
     housecallpro_signature_header: str = "X-HousecallPro-Signature"
     internal_webhook_secret: str = ""
     manual_trigger_api_key: str = ""
+    demo_mode_enabled: bool = True
 
     dedup_window_days: int = 90
     followup_delay_hours: int = 48
