@@ -104,6 +104,17 @@ DEMO_HTML = """<!doctype html>
       margin-top: 10px;
       background: #fbfcfe;
     }
+    .sms-label {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: #eef2f7;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      margin-bottom: 8px;
+    }
     @media (max-width: 860px) {
       main { grid-template-columns: 1fr; }
       .row { grid-template-columns: 1fr; }
@@ -166,11 +177,15 @@ DEMO_HTML = """<!doctype html>
       neutral: "Job completed successfully. No complaint was recorded.",
       negative: "Customer said the issue was not fully fixed and was frustrated about the visit."
     };
-    document.getElementById("customer_phone").value = "+1555" + String(Date.now()).slice(-7);
+    function nextDemoPhone() {
+      return "+1555" + String(Date.now()).slice(-7);
+    }
+    document.getElementById("customer_phone").value = nextDemoPhone();
     document.querySelectorAll("[data-scenario]").forEach((button) => {
       button.addEventListener("click", () => {
         document.getElementById("job_notes").value = scenarios[button.dataset.scenario];
         document.getElementById("demo_sentiment").value = button.dataset.sentiment;
+        document.getElementById("customer_phone").value = nextDemoPhone();
       });
     });
     document.getElementById("demo-form").addEventListener("submit", async (event) => {
@@ -182,6 +197,8 @@ DEMO_HTML = """<!doctype html>
       messages.innerHTML = "";
       const data = Object.fromEntries(new FormData(event.target).entries());
       data.job_id = "demo-" + Date.now();
+      data.customer_phone = nextDemoPhone();
+      document.getElementById("customer_phone").value = data.customer_phone;
       const response = await fetch("/demo/trigger", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
@@ -190,7 +207,7 @@ DEMO_HTML = """<!doctype html>
       const body = await response.json();
       result.textContent = JSON.stringify(body, null, 2);
       if (body.sms_preview) {
-        messages.innerHTML = body.sms_preview.map((sms) => `<div class="sms"><strong>${sms.to}</strong><p>${sms.body}</p></div>`).join("");
+        messages.innerHTML = body.sms_preview.map((sms) => `<div class="sms"><span class="sms-label">${sms.label}</span><br><strong>${sms.to}</strong><p>${sms.body}</p></div>`).join("");
       }
       status.textContent = response.ok ? "Done" : "Failed";
     });
@@ -208,11 +225,11 @@ async def demo_page() -> HTMLResponse:
 def _preview_messages(event: JobCompletedEvent, sentiment: Sentiment, outcome: ReviewOutcome) -> list[dict]:
     settings = get_settings()
     if outcome == ReviewOutcome.REVIEW_REQUEST_SENT:
-        return [{"to": event.customer_phone, "body": review_request_sms(event)}]
+        return [{"label": "Customer SMS", "to": event.customer_phone, "body": review_request_sms(event)}]
     if outcome == ReviewOutcome.FEEDBACK_REQUEST_SENT:
         return [
-            {"to": event.customer_phone, "body": negative_feedback_sms(event)},
-            {"to": settings.owner_phone_number, "body": owner_alert_sms(event, sentiment.value)},
+            {"label": "Customer feedback SMS", "to": event.customer_phone, "body": negative_feedback_sms(event)},
+            {"label": "Owner alert preview", "to": settings.demo_owner_phone_number, "body": owner_alert_sms(event, sentiment.value)},
         ]
     return []
 

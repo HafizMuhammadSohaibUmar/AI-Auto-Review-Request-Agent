@@ -98,6 +98,8 @@ DEMO_MODE_ENABLED=true
 
 In dry-run mode, the app shows the exact SMS that would be sent without sending through Twilio. This is useful for Twilio trial accounts and recruiter testing. For live SMS demos, set `SMS_DRY_RUN=false`; `/demo/trigger` then requires `X-LeadPilot-Key` to avoid unauthenticated SMS sends.
 
+Complaint scenarios show two separate preview cards: the customer feedback SMS and the owner alert. The owner alert preview uses `DEMO_OWNER_PHONE_NUMBER` so a public demo never exposes a real owner number.
+
 ## Google Review Tracking
 
 Review links use:

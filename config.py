@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     internal_webhook_secret: str = ""
     manual_trigger_api_key: str = ""
     demo_mode_enabled: bool = True
+    demo_owner_phone_number: str = "+15550002222"
 
     dedup_window_days: int = 90
     followup_delay_hours: int = 48

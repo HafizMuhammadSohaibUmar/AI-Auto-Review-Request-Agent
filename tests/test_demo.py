@@ -42,6 +42,7 @@ def test_demo_trigger_returns_review_sms_preview_in_dry_run():
     assert body["sms_mode"] == "dry_run"
     assert body["result"]["outcome"] == ReviewOutcome.REVIEW_REQUEST_SENT
     assert len(body["sms_preview"]) == 1
+    assert body["sms_preview"][0]["label"] == "Customer SMS"
     assert "Google review" in body["sms_preview"][0]["body"]
     handler.assert_awaited_once()
 
@@ -58,6 +59,9 @@ def test_demo_trigger_returns_negative_feedback_preview():
     body = response.json()
     assert response.status_code == 200
     assert len(body["sms_preview"]) == 2
+    assert body["sms_preview"][0]["label"] == "Customer feedback SMS"
+    assert body["sms_preview"][1]["label"] == "Owner alert preview"
+    assert body["sms_preview"][1]["to"] == "+15550002222"
     assert "owner will review it" in body["sms_preview"][0]["body"]
 
 
