@@ -42,9 +42,26 @@ def test_demo_trigger_returns_review_sms_preview_in_dry_run():
     assert body["sms_mode"] == "dry_run"
     assert body["result"]["outcome"] == ReviewOutcome.REVIEW_REQUEST_SENT
     assert len(body["sms_preview"]) == 1
-    assert body["sms_preview"][0]["label"] == "Customer SMS"
+    assert body["sms_preview"][0]["label"] == "Happy customer review SMS"
     assert "Google review" in body["sms_preview"][0]["body"]
     handler.assert_awaited_once()
+
+
+def test_demo_trigger_returns_neutral_review_sms_preview():
+    client = TestClient(app)
+    payload = demo_payload("Job completed successfully. No complaint was recorded.")
+    payload["demo_sentiment"] = "NEUTRAL"
+    with patch("handlers.demo.handle_job_completed", new=AsyncMock(return_value={
+        "status": "ok",
+        "sentiment": Sentiment.NEUTRAL,
+        "outcome": ReviewOutcome.REVIEW_REQUEST_SENT,
+    })):
+        response = client.post("/demo/trigger", json=payload)
+
+    body = response.json()
+    assert response.status_code == 200
+    assert body["sms_preview"][0]["label"] == "Neutral customer review SMS"
+    assert "We hope everything is working well" in body["sms_preview"][0]["body"]
 
 
 def test_demo_trigger_returns_negative_feedback_preview():

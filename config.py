@@ -43,12 +43,15 @@ class Settings(BaseSettings):
     manual_trigger_api_key: str = ""
     demo_mode_enabled: bool = True
     demo_owner_phone_number: str = "+15550002222"
+    demo_review_url: str = "https://www.google.com/search?q=Sohaib+Systems+reviews"
 
     dedup_window_days: int = 90
     followup_delay_hours: int = 48
 
     @property
     def google_review_url(self) -> str:
+        if not self.gbp_place_id or self.gbp_place_id.startswith("your_"):
+            return self.demo_review_url
         return f"https://search.google.com/local/writereview?placeid={self.gbp_place_id}"
 
 

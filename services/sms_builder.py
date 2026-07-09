@@ -1,14 +1,21 @@
 """SMS templates for review request workflows."""
 from config import get_settings
-from models.review_request import JobCompletedEvent
+from models.review_request import JobCompletedEvent, Sentiment
 
 
-def review_request_sms(event: JobCompletedEvent) -> str:
+def review_request_sms(event: JobCompletedEvent, sentiment: Sentiment = Sentiment.POSITIVE) -> str:
     settings = get_settings()
+    if sentiment == Sentiment.NEUTRAL:
+        return (
+            f"Hi {event.customer_name}, thanks for choosing {settings.business_name} "
+            f"for your {event.job_type}. {event.technician_name} was glad to help. "
+            f"We hope everything is working well after the visit. If you are happy with the service, "
+            f"a quick Google review would mean a lot: {settings.google_review_url} - {settings.business_name}"
+        )
     return (
         f"Hi {event.customer_name}, thanks for choosing {settings.business_name} "
         f"for your {event.job_type}. {event.technician_name} was glad to help. "
-        f"If everything went well, would you mind leaving us a quick Google review? "
+        f"We are glad everything went well. Would you mind leaving us a quick Google review? "
         f"{settings.google_review_url} - {settings.business_name}"
     )
 

@@ -225,7 +225,8 @@ async def demo_page() -> HTMLResponse:
 def _preview_messages(event: JobCompletedEvent, sentiment: Sentiment, outcome: ReviewOutcome) -> list[dict]:
     settings = get_settings()
     if outcome == ReviewOutcome.REVIEW_REQUEST_SENT:
-        return [{"label": "Customer SMS", "to": event.customer_phone, "body": review_request_sms(event)}]
+        label = "Happy customer review SMS" if sentiment == Sentiment.POSITIVE else "Neutral customer review SMS"
+        return [{"label": label, "to": event.customer_phone, "body": review_request_sms(event, sentiment)}]
     if outcome == ReviewOutcome.FEEDBACK_REQUEST_SENT:
         return [
             {"label": "Customer feedback SMS", "to": event.customer_phone, "body": negative_feedback_sms(event)},

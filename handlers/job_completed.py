@@ -41,7 +41,7 @@ async def handle_job_completed(event: JobCompletedEvent, sentiment_override: Sen
     else:
         review_sms_sent = await twilio_client.send_sms(
             event.customer_phone,
-            review_request_sms(event),
+            review_request_sms(event, sentiment),
             job_id=event.job_id,
         )
         outcome = ReviewOutcome.REVIEW_REQUEST_SENT if review_sms_sent else ReviewOutcome.ERROR
