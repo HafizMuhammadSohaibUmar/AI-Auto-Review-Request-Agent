@@ -12,7 +12,7 @@ from services.sms_builder import negative_feedback_sms, owner_alert_sms, review_
 logger = logging.getLogger("job_completed")
 
 
-async def handle_job_completed(event: JobCompletedEvent) -> dict:
+async def handle_job_completed(event: JobCompletedEvent, sentiment_override: Sentiment | None = None) -> dict:
     settings = get_settings()
 
     if await supabase_client.is_suppressed(event.customer_phone):
@@ -21,7 +21,7 @@ async def handle_job_completed(event: JobCompletedEvent) -> dict:
     if await supabase_client.recently_requested(event.customer_phone):
         return {"status": "deduped", "outcome": ReviewOutcome.DEDUPED}
 
-    sentiment = await classify_sentiment(event.job_notes)
+    sentiment = sentiment_override or await classify_sentiment(event.job_notes)
     now = datetime.now(timezone.utc)
 
     if sentiment == Sentiment.NEGATIVE:

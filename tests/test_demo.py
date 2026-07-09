@@ -14,6 +14,7 @@ def demo_payload(notes: str = "Customer was happy with the work.") -> dict:
         "job_type": "AC repair",
         "job_notes": notes,
         "job_id": "demo-job-1",
+        "demo_sentiment": "POSITIVE",
     }
 
 
@@ -24,6 +25,7 @@ def test_demo_page_loads():
     assert response.status_code == 200
     assert "LeadPilot AI Review Request Agent" in response.text
     assert "Happy customer" in response.text
+    assert 'id="demo_sentiment"' in response.text
 
 
 def test_demo_trigger_returns_review_sms_preview_in_dry_run():
@@ -57,3 +59,19 @@ def test_demo_trigger_returns_negative_feedback_preview():
     assert response.status_code == 200
     assert len(body["sms_preview"]) == 2
     assert "owner will review it" in body["sms_preview"][0]["body"]
+
+
+def test_demo_trigger_passes_negative_sentiment_override():
+    client = TestClient(app)
+    payload = demo_payload("Customer was frustrated.")
+    payload["demo_sentiment"] = "NEGATIVE"
+    with patch("handlers.demo.handle_job_completed", new=AsyncMock(return_value={
+        "status": "ok",
+        "sentiment": Sentiment.NEGATIVE,
+        "outcome": ReviewOutcome.FEEDBACK_REQUEST_SENT,
+    })) as handler:
+        response = client.post("/demo/trigger", json=payload)
+
+    assert response.status_code == 200
+    _, kwargs = handler.await_args
+    assert kwargs["sentiment_override"] == Sentiment.NEGATIVE

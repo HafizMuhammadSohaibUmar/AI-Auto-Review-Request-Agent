@@ -120,11 +120,12 @@ DEMO_HTML = """<!doctype html>
     <section>
       <h2>Completed Job</h2>
       <div class="scenarios">
-        <button data-scenario="positive" type="button">Happy customer</button>
-        <button data-scenario="neutral" type="button">Neutral job</button>
-        <button data-scenario="negative" type="button">Complaint</button>
+        <button data-scenario="positive" data-sentiment="POSITIVE" type="button">Happy customer</button>
+        <button data-scenario="neutral" data-sentiment="NEUTRAL" type="button">Neutral job</button>
+        <button data-scenario="negative" data-sentiment="NEGATIVE" type="button">Complaint</button>
       </div>
       <form id="demo-form">
+        <input id="demo_sentiment" name="demo_sentiment" type="hidden" value="POSITIVE">
         <div class="row">
           <div>
             <label for="customer_name">Customer name</label>
@@ -169,6 +170,7 @@ DEMO_HTML = """<!doctype html>
     document.querySelectorAll("[data-scenario]").forEach((button) => {
       button.addEventListener("click", () => {
         document.getElementById("job_notes").value = scenarios[button.dataset.scenario];
+        document.getElementById("demo_sentiment").value = button.dataset.sentiment;
       });
     });
     document.getElementById("demo-form").addEventListener("submit", async (event) => {
@@ -223,10 +225,12 @@ async def demo_trigger(request: Request) -> dict:
         raise HTTPException(status_code=403, detail="Live SMS demo requires X-LeadPilot-Key")
     payload = await request.json()
     payload.setdefault("job_id", f"demo-{uuid4()}")
+    demo_sentiment = payload.pop("demo_sentiment", None)
+    sentiment_override = Sentiment(demo_sentiment) if demo_sentiment else None
     event = JobCompletedEvent.model_validate(payload)
     event.provider = "demo"
     event.customer_phone = normalize_phone(event.customer_phone)
-    result = await handle_job_completed(event)
+    result = await handle_job_completed(event, sentiment_override=sentiment_override)
     sentiment = Sentiment(result["sentiment"]) if "sentiment" in result else Sentiment.NEUTRAL
     outcome = ReviewOutcome(result["outcome"])
     return {
