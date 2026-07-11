@@ -58,6 +58,13 @@ async def browser_demo_trigger(request: Request):
     return await demo_trigger(request)
 
 
+@app.get("/demo/snapshot")
+async def demo_snapshot():
+    if not get_settings().demo_mode_enabled:
+        return {"enabled": False}
+    return await supabase_client.demo_snapshot()
+
+
 @app.post("/webhook/job-completed/jobber")
 async def jobber_job_completed(request: Request):
     event = await parse_jobber_event(request)

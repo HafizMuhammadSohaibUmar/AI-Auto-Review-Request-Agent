@@ -12,6 +12,12 @@ from models.review_request import ReviewRequestRecord, ReviewOutcome, Suppressio
 logger = logging.getLogger("supabase")
 
 
+def _mask_phone(phone: str | None) -> str:
+    if not phone:
+        return ""
+    return f"{phone[:3]}***{phone[-4:]}" if len(phone) >= 7 else "***"
+
+
 class SupabaseClient:
     def __init__(self) -> None:
         settings = get_settings()
@@ -132,6 +138,55 @@ class SupabaseClient:
             "conversion_rate": round(posted / requests_sent, 4) if requests_sent else 0,
             "positive_rate": round(positives / total, 4) if total else 0,
             "negative_rate": round(negatives / total, 4) if total else 0,
+        }
+
+    async def demo_snapshot(self) -> dict:
+        requests = await self._request(
+            "GET", "review_requests",
+            params={
+                "business_id": f"eq.{self.business_id}",
+                "select": "customer_phone,job_type,sentiment,outcome,review_sms_sent,followup_sent,review_posted,created_at",
+                "order": "created_at.desc",
+                "limit": "6",
+            },
+        )
+        suppressions = await self._request(
+            "GET", "review_suppressions",
+            params={
+                "business_id": f"eq.{self.business_id}",
+                "select": "phone,reason,created_at",
+                "order": "created_at.desc",
+                "limit": "4",
+            },
+        )
+        return {
+            "tables": {
+                "review_requests": {
+                    "sample": [
+                        {
+                            "phone": _mask_phone(row.get("customer_phone")),
+                            "job_type": row.get("job_type"),
+                            "sentiment": row.get("sentiment"),
+                            "outcome": row.get("outcome"),
+                            "review_sms_sent": bool(row.get("review_sms_sent")),
+                            "followup_sent": bool(row.get("followup_sent")),
+                            "review_posted": bool(row.get("review_posted")),
+                            "created_at": row.get("created_at"),
+                        }
+                        for row in requests
+                    ],
+                },
+                "review_suppressions": {
+                    "sample": [
+                        {
+                            "phone": _mask_phone(row.get("phone")),
+                            "reason": row.get("reason"),
+                            "created_at": row.get("created_at"),
+                        }
+                        for row in suppressions
+                    ],
+                },
+            }
         }
 
     async def health_check(self) -> dict:

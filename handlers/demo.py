@@ -175,6 +175,9 @@ DEMO_HTML = """<!doctype html>
       <h2>Agent Output</h2>
       <pre id="result">Run a scenario to see sentiment, routing, and SMS preview.</pre>
       <div id="messages"></div>
+      <h2>Safe Database Preview</h2>
+      <p class="explain">Masked Supabase snapshot from review tables. Phone numbers are masked and customer names are not shown.</p>
+      <pre id="snapshot">Loading sanitized table preview...</pre>
     </section>
   </main>
   <script>
@@ -216,7 +219,17 @@ DEMO_HTML = """<!doctype html>
         messages.innerHTML = body.sms_preview.map((sms) => `<div class="sms"><span class="sms-label">${sms.label}</span><br><strong>${sms.to}</strong><p>${sms.body}</p></div>`).join("");
       }
       status.textContent = response.ok ? "Done" : "Failed";
+      refreshSnapshot();
     });
+    async function refreshSnapshot() {
+      try {
+        const response = await fetch("/demo/snapshot");
+        document.getElementById("snapshot").textContent = JSON.stringify(await response.json(), null, 2);
+      } catch (error) {
+        document.getElementById("snapshot").textContent = "Snapshot unavailable.";
+      }
+    }
+    refreshSnapshot();
   </script>
 </body>
 </html>"""
