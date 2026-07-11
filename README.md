@@ -4,15 +4,38 @@ AI-powered review request automation for home-service businesses.
 
 This service listens for completed-job events, validates the source, classifies job notes for customer satisfaction, sends either a Google review request or a private feedback request, logs the workflow in Supabase, and sends one gentle follow-up after 48 hours when appropriate.
 
-## LeadPilot AI Agent Suite
+## Architecture
 
-| # | Agent | Purpose | Status |
-| --- | --- | --- | --- |
-| 1 | LeadPilot AI Voice Agent | Inbound call qualification and emergency escalation. | Live |
-| 2 | Missed Call Text-Back Agent | SMS recovery after missed calls. | Planned |
-| 3 | Outbound Follow-Up Agent | Campaign follow-up automation. | Planned |
-| 4 | AI Review Request Agent | Sentiment-aware review request automation. | This repo |
-| 5 | Web Chat Lead Qualifier | RAG-powered website chat qualification. | Planned |
+```text
+Jobber / Housecall Pro / Manual Completed Job
+  -> FastAPI webhook or manual trigger
+  -> source signature/API-key validation
+  -> phone normalization + STOP suppression + 90-day dedup
+  -> LiteLLM/Ministral sentiment classification
+  -> positive/neutral: Google review SMS
+  -> negative: private feedback SMS + owner alert
+  -> Supabase review_requests
+  -> scheduled 48-hour follow-up check
+```
+
+## What It Proves
+
+- Post-job automation can improve review capture without sending unhappy customers directly to Google.
+- Small classification tasks can use a low-cost model instead of a large general-purpose model.
+- Webhook security, deduplication, opt-out handling, and follow-up limits are part of the core workflow.
+- A browser demo can exercise the production routing logic without needing live Jobber, Housecall Pro, or Google Business Profile credentials.
+
+## Related AI Systems
+
+| System | Purpose | Links |
+| --- | --- | --- |
+| LeadPilot AI Voice Agent | Inbound phone agent for call qualification, emergency detection, and lead logging. | [Live](https://leadpilotai.sohaib.systems/) · [Repo](https://github.com/HafizMuhammadSohaibUmar/LeadPilotAI) |
+| Missed Call Text-Back AI Agent | SMS recovery and qualification after no-answer or busy calls. | [Live](https://missed-call-text-back-ai-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Missed-Call-Text-Back-AI-Agent) |
+| Outbound Follow-Up AI Agent | Estimate, no-show, re-engagement, and seasonal follow-up campaigns. | [Live](https://outbound-followup-ai-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Outbound-Follow-Up-AI-Agent) |
+| AI Auto Review Request Agent | Sentiment-aware post-job review and private feedback routing. | [Live](https://ai-review-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent) |
+| Web Chat Lead Qualifier Agent | Embeddable RAG chat widget for contractor websites. | [Live](https://web-chat-lead-qualifier-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Web-Chat-Lead-Qualifier-Agent) |
+| Personal AI Agent | Local task, planning, and calendar assistant with LangGraph tools. | [Live](https://personal-ai-agent.sohaib.systems/) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Personal-AI-Agent) |
+| Invoxia AI for ERPNext | Frappe/ERPNext assistant layer for navigation, voice input foundations, and live ERP answers. | [Live](https://invoxia.sohaib.systems/) · [Repo](https://github.com/HafizMuhammadSohaibUmar/InvoxiaAI-ERPNext) |
 
 ## Core Flow
 

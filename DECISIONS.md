@@ -1,6 +1,6 @@
 # Decisions
 
-This service is Agent 4 in the LeadPilot AI Agent Suite: the AI Review Request Agent for home-service businesses.
+This service is the AI Auto Review Request Agent for home-service businesses.
 
 ## Product Boundary
 
