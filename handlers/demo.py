@@ -110,7 +110,8 @@ DEMO_HTML = """<!doctype html>
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 520px;
+      min-width: 620px;
+      table-layout: fixed;
     }
     th, td {
       text-align: left;
@@ -118,6 +119,7 @@ DEMO_HTML = """<!doctype html>
       padding: 10px 12px;
       font-size: 14px;
       vertical-align: top;
+      word-break: break-word;
     }
     th {
       color: var(--ink);
@@ -151,9 +153,24 @@ DEMO_HTML = """<!doctype html>
       margin-bottom: 8px;
     }
     .explain { margin-top: 14px; padding: 14px; border: 1px solid rgba(196,154,26,0.22); border-left: 3px solid var(--gold); border-radius: 10px; background: rgba(196,154,26,0.08); color: var(--muted); font-size: 14px; }
+    .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; max-width:1180px; }
+    .metric { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,0.035); padding:14px; }
+    .metric strong { display:block; color:var(--ink); margin-bottom:6px; }
+    .metric span { display:block; color:var(--muted); font-size:14px; line-height:1.5; }
+    footer { border-top:1px solid var(--line); padding:24px clamp(18px,4vw,44px); color:var(--muted); background:#0A0908; }
+    .footer-top { display:grid; grid-template-columns:minmax(0,1.4fr) 1fr 1fr; gap:18px; max-width:1180px; margin:0 auto 18px; }
+    .footer-brand a { color:var(--ink); font-size:24px; font-weight:900; text-decoration:none; }
+    .footer-brand span { color:var(--gold); }
+    .footer-brand p, .footer-col a, .footer-bottom { color:var(--muted); font-size:14px; }
+    .footer-col h4 { margin:0 0 8px; color:var(--ink); }
+    .footer-links-list { list-style:none; padding:0; margin:0; display:grid; gap:6px; }
+    .footer-links-list a { text-decoration:none; }
+    .footer-bottom { max-width:1180px; margin:0 auto; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; border-top:1px solid var(--line); padding-top:16px; }
+    .footer-bottom-links { display:flex; gap:12px; flex-wrap:wrap; }
+    .footer-bottom a { color:var(--ink); text-decoration:none; }
     @media (max-width: 860px) {
       main { grid-template-columns: 1fr; }
-      .row { grid-template-columns: 1fr; }
+      .row, .metrics, .footer-top { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -161,8 +178,13 @@ DEMO_HTML = """<!doctype html>
   <header>
     <span class="badge">Demo mode</span>
     <h1>LeadPilot AI Review Request Agent</h1>
-    <p>Trigger a completed home-service job and watch the agent route it to a Google review request or private feedback flow.</p>
-    <div class="explain">Positive and neutral notes produce review-request SMS previews. Complaint notes are routed to private feedback plus a separate owner alert.</div>
+    <p>Trigger a completed home-service job and watch the agent decide whether to request a public review or route the customer into a private recovery flow.</p>
+    <div class="metrics">
+      <div class="metric"><strong>Problem solved</strong><span>Businesses need more reviews, but unhappy customers should be handled privately before being asked to post publicly.</span></div>
+      <div class="metric"><strong>How it works</strong><span>Completed-job data is normalized, deduplicated for 90 days, classified by sentiment, logged to Supabase, and scheduled for follow-up.</span></div>
+      <div class="metric"><strong>How to evaluate</strong><span>Run happy, neutral, and complaint scenarios. Happy/neutral should produce review SMS; complaint should produce customer feedback plus owner alert.</span></div>
+    </div>
+    <div class="explain">The browser demo uses the manual completed-job trigger. Jobber, Housecall Pro, Google Business Profile, and Twilio are production integration points.</div>
   </header>
   <main>
     <section>
@@ -211,6 +233,32 @@ DEMO_HTML = """<!doctype html>
       <div id="snapshot">Loading sanitized table preview...</div>
     </section>
   </main>
+  <footer>
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="https://sohaib.systems/" target="_blank" rel="noreferrer">Sohaib<span>.</span></a>
+        <p>AI Solutions Engineer building practical automation systems for home-service lead capture, follow-up, and customer communication.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Project</h4>
+        <ul class="footer-links-list">
+          <li><a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent" target="_blank" rel="noreferrer">GitHub Repository</a></li>
+          <li><a href="/health" target="_blank" rel="noreferrer">Health Check</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <ul class="footer-links-list">
+          <li><a href="https://sohaib.systems/portfolio.html" target="_blank" rel="noreferrer">Project Portfolio</a></li>
+          <li><a href="mailto:hafizmuhammadsohaibumar@gmail.com">Email</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>2026 Hafiz Muhammad Sohaib Umar</span>
+      <div class="footer-bottom-links"><a href="https://sohaib.systems/" target="_blank" rel="noreferrer">sohaib.systems</a><a href="https://github.com/HafizMuhammadSohaibUmar" target="_blank" rel="noreferrer">GitHub</a></div>
+    </div>
+  </footer>
   <script>
     const scenarios = {
       positive: "Customer was happy with the repair and thanked Alex before leaving.",
