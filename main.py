@@ -1,9 +1,11 @@
 """LeadPilot AI Review Request Agent."""
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request, Response
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from config import get_settings
 from handlers.demo import demo_page, demo_trigger
@@ -36,6 +38,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="LeadPilot AI Review Request Agent", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
 
 @app.get("/")
