@@ -18,7 +18,7 @@ Jobber / Housecall Pro / Manual Completed Job
   -> scheduled 48-hour follow-up check
 ```
 
-## Engineering Signals
+## Engineering Points
 
 - Completed-job events are routed through signature/API-key validation before any customer message is generated.
 - Sentiment routing separates happy/neutral review requests from complaint-handling feedback flows.
@@ -108,17 +108,11 @@ X-LeadPilot-Key: <MANUAL_TRIGGER_API_KEY>
 The service includes a browser demo at:
 
 ```text
-GET /demo
+https://ai-review-agent.sohaib.systems/demo
 ```
 
 The demo uses the same completed-job workflow as production: phone normalization, suppression checks, 90-day deduplication, sentiment classification, routing, Supabase logging, and metrics. It does not require a Jobber account, Housecall Pro account, or verified Google Business Profile.
 
-For safe public evaluation, use:
-
-```text
-SMS_DRY_RUN=true
-DEMO_MODE_ENABLED=true
-```
 
 In dry-run mode, the app shows the exact SMS that would be sent without sending through Twilio. For live SMS demos, set `SMS_DRY_RUN=false`; `/demo/trigger` then requires `X-LeadPilot-Key` to avoid unauthenticated SMS sends.
 
@@ -152,5 +146,5 @@ pytest tests/ -v
 
 - Suppressions are scoped by `business_id`, so the same Supabase project can safely host multiple businesses.
 - The Google Business Profile review-detection API is implemented in `ReviewTracker`.
-- This service uses the same Supabase project pattern as Agent 1, with separate tables and `business_id`.
+- This service uses the same Supabase project pattern as [LeadPilotAI Agent](https://github.com/HafizMuhammadSohaibUmar/LeadPilotAI), with separate tables and `business_id`.
 
