@@ -18,24 +18,25 @@ Jobber / Housecall Pro / Manual Completed Job
   -> scheduled 48-hour follow-up check
 ```
 
-## What It Proves
+## Engineering Signals
 
-- Post-job automation can improve review capture without sending unhappy customers directly to Google.
-- Small classification tasks can use a low-cost model instead of a large general-purpose model.
-- Webhook security, deduplication, opt-out handling, and follow-up limits are part of the core workflow.
-- A browser demo can exercise the production routing logic without needing live Jobber, Housecall Pro, or Google Business Profile credentials.
+- Completed-job events are routed through signature/API-key validation before any customer message is generated.
+- Sentiment routing separates happy/neutral review requests from complaint-handling feedback flows.
+- STOP suppression, 90-day deduplication, and one-follow-up limits are part of the workflow rather than afterthoughts.
+- The Google Business Profile tracker is isolated behind a service boundary so the core workflow still runs when GBP credentials are not configured.
+- The browser demo exercises the same routing and Supabase logging path without requiring live Jobber, Housecall Pro, or GBP accounts.
 
 ## Related AI Systems
 
-| System | Purpose | Links |
-| --- | --- | --- |
-| LeadPilot AI Voice Agent | Inbound phone agent for call qualification, emergency detection, and lead logging. | [Live](https://leadpilotai.sohaib.systems/) · [Repo](https://github.com/HafizMuhammadSohaibUmar/LeadPilotAI) |
-| Missed Call Text-Back AI Agent | SMS recovery and qualification after no-answer or busy calls. | [Live](https://missed-call-text-back-ai-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Missed-Call-Text-Back-AI-Agent) |
-| Outbound Follow-Up AI Agent | Estimate, no-show, re-engagement, and seasonal follow-up campaigns. | [Live](https://outbound-followup-ai-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Outbound-Follow-Up-AI-Agent) |
-| AI Auto Review Request Agent | Sentiment-aware post-job review and private feedback routing. | [Live](https://ai-review-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent) |
-| Web Chat Lead Qualifier Agent | Embeddable RAG chat widget for contractor websites. | [Live](https://web-chat-lead-qualifier-agent.sohaib.systems/demo) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Web-Chat-Lead-Qualifier-Agent) |
-| Personal AI Agent | Local task, planning, and calendar assistant with LangGraph tools. | [Live](https://personal-ai-agent.sohaib.systems/) · [Repo](https://github.com/HafizMuhammadSohaibUmar/Personal-AI-Agent) |
-| Invoxia AI for ERPNext | Frappe/ERPNext assistant layer for navigation, voice input foundations, and live ERP answers. | [Live](https://invoxia.sohaib.systems/) · [Repo](https://github.com/HafizMuhammadSohaibUmar/InvoxiaAI-ERPNext) |
+| System | Purpose | Live Demo | Repository |
+| --- | --- | --- | --- |
+| LeadPilot AI Voice Agent | Inbound phone agent for call qualification, emergency detection, and lead logging. | [Live Demo](https://leadpilotai.sohaib.systems/) | [Repository](https://github.com/HafizMuhammadSohaibUmar/LeadPilotAI) |
+| Missed Call Text-Back AI Agent | SMS recovery and qualification after no-answer or busy calls. | [Live Demo](https://missed-call-text-back-ai-agent.sohaib.systems/demo) | [Repository](https://github.com/HafizMuhammadSohaibUmar/Missed-Call-Text-Back-AI-Agent) |
+| Outbound Follow-Up AI Agent | Estimate, no-show, re-engagement, and seasonal follow-up campaigns. | [Live Demo](https://outbound-followup-ai-agent.sohaib.systems/demo) | [Repository](https://github.com/HafizMuhammadSohaibUmar/Outbound-Follow-Up-AI-Agent) |
+| AI Auto Review Request Agent | Sentiment-aware post-job review and private feedback routing. | [Live Demo](https://ai-review-agent.sohaib.systems/demo) | **This repo** |
+| Web Chat Lead Qualifier Agent | Embeddable RAG chat widget for contractor websites. | [Live Demo](https://web-chat-lead-qualifier-agent.sohaib.systems/demo) | [Repository](https://github.com/HafizMuhammadSohaibUmar/Web-Chat-Lead-Qualifier-Agent) |
+| Personal AI Agent | Self-hosted task, planning, and local-calendar assistant with LangGraph tools. | [Live Demo](https://personal-ai-agent.sohaib.systems/) | [Repository](https://github.com/HafizMuhammadSohaibUmar/Personal-AI-Agent) |
+| Invoxia AI for ERPNext | Frappe/ERPNext assistant layer for navigation, voice input foundations, and live ERP answers. | [Live Demo](https://invoxia.sohaib.systems/) | [Repository](https://github.com/HafizMuhammadSohaibUmar/InvoxiaAI-ERPNext) |
 
 ## Core Flow
 
@@ -112,14 +113,14 @@ GET /demo
 
 The demo uses the same completed-job workflow as production: phone normalization, suppression checks, 90-day deduplication, sentiment classification, routing, Supabase logging, and metrics. It does not require a Jobber account, Housecall Pro account, or verified Google Business Profile.
 
-For public demos, use:
+For safe public evaluation, use:
 
 ```text
 SMS_DRY_RUN=true
 DEMO_MODE_ENABLED=true
 ```
 
-In dry-run mode, the app shows the exact SMS that would be sent without sending through Twilio. This is useful for Twilio trial accounts and recruiter testing. For live SMS demos, set `SMS_DRY_RUN=false`; `/demo/trigger` then requires `X-LeadPilot-Key` to avoid unauthenticated SMS sends.
+In dry-run mode, the app shows the exact SMS that would be sent without sending through Twilio. For live SMS demos, set `SMS_DRY_RUN=false`; `/demo/trigger` then requires `X-LeadPilot-Key` to avoid unauthenticated SMS sends.
 
 Complaint scenarios show two separate preview cards: the customer feedback SMS and the owner alert. The owner alert preview uses `DEMO_OWNER_PHONE_NUMBER` so a public demo never exposes a real owner number.
 
@@ -147,24 +148,9 @@ Google reviews do not expose the original job id or customer phone, so the track
 pytest tests/ -v
 ```
 
-## Deployment
-
-This service can run on the same DigitalOcean Droplet and Supabase project as the other LeadPilot AI agents.
-
-Use a different port from Agent 1:
-
-```bash
-docker compose up --build -d
-```
-
-If using a reverse proxy, route this app as a separate subdomain or path, for example:
-
-```text
-reviews.leadpilotai.sohaib.systems
-```
-
 ## Notes
 
 - Suppressions are scoped by `business_id`, so the same Supabase project can safely host multiple businesses.
 - The Google Business Profile review-detection API is implemented in `ReviewTracker`.
 - This service uses the same Supabase project pattern as Agent 1, with separate tables and `business_id`.
+

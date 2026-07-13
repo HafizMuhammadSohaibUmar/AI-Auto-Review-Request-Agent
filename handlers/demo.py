@@ -100,6 +100,37 @@ DEMO_HTML = """<!doctype html>
       padding: 14px;
       min-height: 240px;
     }
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      margin-top: 12px;
+      background: #111009;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 520px;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      font-size: 14px;
+      vertical-align: top;
+    }
+    th {
+      color: var(--ink);
+      background: rgba(255,255,255,0.04);
+    }
+    td { color: var(--muted); }
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: 10px;
+    }
     .sms {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -177,7 +208,7 @@ DEMO_HTML = """<!doctype html>
       <div id="messages"></div>
       <h2>Safe Database Preview</h2>
       <p class="explain">Masked Supabase snapshot from review tables. Phone numbers are masked and customer names are not shown.</p>
-      <pre id="snapshot">Loading sanitized table preview...</pre>
+      <div id="snapshot">Loading sanitized table preview...</div>
     </section>
   </main>
   <script>
@@ -224,10 +255,30 @@ DEMO_HTML = """<!doctype html>
     async function refreshSnapshot() {
       try {
         const response = await fetch("/demo/snapshot");
-        document.getElementById("snapshot").textContent = JSON.stringify(await response.json(), null, 2);
+        renderSnapshot(await response.json());
       } catch (error) {
         document.getElementById("snapshot").textContent = "Snapshot unavailable.";
       }
+    }
+    function renderSnapshot(data) {
+      const root = document.getElementById("snapshot");
+      const tables = data.tables || {};
+      root.innerHTML = Object.entries(tables).map(([name, table]) => {
+        const rows = table.sample || [];
+        if (!rows.length) return `<h3>${title(name)}</h3><div class="empty">No recent demo-safe rows yet.</div>`;
+        const cols = Object.keys(rows[0]);
+        return `<h3>${title(name)}</h3><div class="table-wrap"><table><thead><tr>${cols.map(c => `<th>${title(c)}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${cols.map(c => `<td>${escapeHtml(String(row[c] ?? ""))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+      }).join("");
+    }
+    function title(value) { return value.replaceAll("_", " ").replace(/\\b\\w/g, c => c.toUpperCase()); }
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, (ch) => {
+        if (ch === "&") return "&amp;";
+        if (ch === "<") return "&lt;";
+        if (ch === ">") return "&gt;";
+        if (ch === '"') return "&quot;";
+        return "&#39;";
+      });
     }
     refreshSnapshot();
   </script>
