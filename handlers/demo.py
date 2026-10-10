@@ -217,7 +217,7 @@ DEMO_HTML = """<!doctype html>
   <header>
     <span class="badge">Demo mode</span>
     <h1>LeadPilot AI Review Request Agent</h1>
-    <p>Trigger a completed home-service job and watch the agent decide whether to request a public review or route the customer into a private recovery flow.</p>
+    <p>Trigger a completed service-business job and watch the agent decide whether to request a public review or route the customer into a private recovery flow.</p>
     <div class="metrics">
       <div class="metric"><strong>Problem solved</strong><span>Businesses need more reviews, but unhappy customers should be handled privately before being asked to post publicly.</span></div>
       <div class="metric"><strong>How it works</strong><span>Completed-job data is normalized, deduplicated for 90 days, classified by sentiment, logged to Supabase, and scheduled for follow-up.</span></div>
@@ -279,7 +279,7 @@ DEMO_HTML = """<!doctype html>
     <div class="footer-top">
       <div class="footer-brand">
         <a href="https://sohaib.systems/" target="_blank" rel="noreferrer">Sohaib<span>.</span></a>
-        <p>AI Solutions Engineer building practical automation systems for home-service lead capture, follow-up, and customer communication.</p>
+        <p>AI Solutions Engineer building practical automation systems for service-business lead capture, follow-up, and customer communication.</p>
       </div>
       <div class="footer-col">
         <h4>Project</h4>
