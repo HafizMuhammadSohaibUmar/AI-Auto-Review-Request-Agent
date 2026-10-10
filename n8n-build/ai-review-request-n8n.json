@@ -1,0 +1,683 @@
+{
+  "id": "ReviewRequestN8n20261010",
+  "name": "AI Review Request - n8n Only (inactive until configured)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/New_York",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "nodes": [
+    {
+      "id": "credentials-and-safety-notes",
+      "name": "Credentials and Safety Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "parameters": {
+        "width": 700,
+        "height": 460,
+        "content": "## Credentials required before activation\nJobber webhook secret and/or Housecall Pro webhook secret; Supabase service-role credential; Mistral API credential for https://api.mistral.ai/v1/chat/completions; Twilio Account SID/Auth Token and approved SMS sender; Google Business Profile OAuth credential for review detection; owner E.164 number.\n\nValid JSON cannot contain comments, so this sticky note is the requested top-of-file credential block. Replace every REPLACE_WITH_* value. Verify Jobber/HCP HMAC signatures at ingress before production. Keep inactive until consent, STOP handling, SMS sender compliance, CRM webhook tests, and internal-number tests pass."
+      },
+      "position": [
+        -520,
+        -620
+      ]
+    },
+    {
+      "id": "job-completed-webhook",
+      "name": "Job Completed Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "review-request-job-completed-n8n",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "position": [
+        -380,
+        -180
+      ]
+    },
+    {
+      "id": "normalize-completed-job",
+      "name": "Normalize Completed Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const p = $input.first().json.body ?? $input.first().json;\n  const e = p.event ?? p.data ?? p;\n  const phone = e.customer_phone ?? e.customer?.phone ?? e.client?.phones?.[0]?.number ?? e.phone;\n  const name = e.customer_name ?? e.customer?.name ?? e.client?.name ?? e.name ?? 'Customer';\n  const jobId = e.job_id ?? e.job?.id ?? e.id;\n  if (!phone || !jobId) throw new Error('Completed-job webhook requires customer phone and job id');\n  return [{ json: { business_id: 'REPLACE_WITH_BUSINESS_ID', job_id: String(jobId), customer_phone: phone, customer_name: name, job_type: e.job_type ?? e.service_type ?? e.title ?? 'home service', technician_name: e.technician_name ?? e.technician?.name ?? 'our technician', job_notes: e.job_notes ?? e.notes ?? e.summary ?? '', completed_at: e.completed_at ?? e.completedAt ?? new Date().toISOString(), received_at: new Date().toISOString() } }];"
+      },
+      "position": [
+        -140,
+        -180
+      ]
+    },
+    {
+      "id": "90-day-dedup-supabase-",
+      "name": "90-Day Dedup (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "n8n_review_requests",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "customer_phone",
+              "condition": "eq",
+              "keyValue": "={{ $('Normalize Completed Job').first().json.customer_phone }}"
+            },
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ $now.minus({ days: 90 }).toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        100,
+        -180
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "id": "four-hour-placeholder-guard",
+      "name": "Four-Hour Placeholder Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const event = $('Normalize Completed Job').first().json;\n  const rows = $input.all().map(i => i.json);\n  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;\n  const duplicate = rows.some(r => r.job_id === event.job_id || (r.customer_phone === event.customer_phone && Date.parse(r.created_at) >= cutoff));\n  return [{ json: { ...event, duplicate } }];"
+      },
+      "position": [
+        340,
+        -180
+      ]
+    },
+    {
+      "id": "not-deduplicated-",
+      "name": "Not Deduplicated?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.duplicate }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        560,
+        -180
+      ]
+    },
+    {
+      "id": "classify-job-notes-ministral-3b",
+      "name": "Classify Job Notes - Ministral 3B",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mistral.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({model:'ministral-3b-latest',temperature:0,response_format:{type:'json_object'},messages:[{role:'system',content:'Classify home-service customer/job notes. Return JSON only: {sentiment: POSITIVE|NEUTRAL|NEGATIVE, rationale: short string}. NEGATIVE means complaint, unresolved issue, frustration, or explicit dissatisfaction. POSITIVE means clear satisfaction. Use NEUTRAL when unclear or uncertain.'},{role:'user',content:$json.job_notes}]}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "position": [
+        800,
+        -180
+      ]
+    },
+    {
+      "id": "parse-sentiment",
+      "name": "Parse Sentiment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const event = $('Four-Hour Placeholder Guard').first().json;\n  const raw = String($input.first().json.choices?.[0]?.message?.content ?? $input.first().json.output ?? '');\n  const cleaned = raw.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();\n  let parsed;\n  try { parsed = JSON.parse(cleaned); } catch { parsed = { sentiment: 'NEUTRAL', rationale: 'Mistral response was not valid JSON; safe neutral fallback used.' }; }\n  const sentiment = ['POSITIVE', 'NEUTRAL', 'NEGATIVE'].includes(String(parsed.sentiment).toUpperCase()) ? String(parsed.sentiment).toUpperCase() : 'NEUTRAL';\n  return [{ json: { ...event, sentiment, rationale: parsed.rationale ?? '' } }];"
+      },
+      "position": [
+        1040,
+        -180
+      ]
+    },
+    {
+      "id": "negative-sentiment-",
+      "name": "Negative Sentiment?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.sentiment }}",
+              "rightValue": "NEGATIVE",
+              "operator": {
+                "type": "string",
+                "operation": "equal"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        1260,
+        -180
+      ]
+    },
+    {
+      "id": "sms-private-feedback",
+      "name": "SMS Private Feedback",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "REPLACE_WITH_TWILIO_E164",
+        "to": "={{ $json.customer_phone }}",
+        "message": "={{ 'Hi ' + $json.customer_name + ', thank you for letting us know. We are sorry the ' + $json.job_type + ' visit did not meet expectations. Please reply here with any details and our owner will review it. Reply STOP to opt out.' }}"
+      },
+      "position": [
+        1500,
+        -300
+      ]
+    },
+    {
+      "id": "sms-owner-negative-alert",
+      "name": "SMS Owner Negative Alert",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "REPLACE_WITH_TWILIO_E164",
+        "to": "REPLACE_WITH_OWNER_E164",
+        "message": "={{ 'NEGATIVE CUSTOMER FEEDBACK: ' + $json.customer_name + ' (' + $json.customer_phone + ') after ' + $json.job_type + '. Notes: ' + $json.job_notes }}"
+      },
+      "position": [
+        1740,
+        -300
+      ]
+    },
+    {
+      "id": "sms-google-review-request",
+      "name": "SMS Google Review Request",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "REPLACE_WITH_TWILIO_E164",
+        "to": "={{ $json.customer_phone }}",
+        "message": "={{ 'Hi ' + $json.customer_name + ', we hope everything is working well after your ' + $json.job_type + ' service. Would you mind leaving us a quick Google review? REPLACE_WITH_GOOGLE_REVIEW_URL - REPLACE_WITH_BUSINESS_NAME. Reply STOP to opt out.' }}"
+      },
+      "position": [
+        1500,
+        60
+      ]
+    },
+    {
+      "id": "log-review-request",
+      "name": "Log Review Request",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableId": "n8n_review_requests",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "business_id",
+              "fieldValue": "={{ $json.business_id }}"
+            },
+            {
+              "fieldId": "job_id",
+              "fieldValue": "={{ $json.job_id }}"
+            },
+            {
+              "fieldId": "customer_phone",
+              "fieldValue": "={{ $json.customer_phone }}"
+            },
+            {
+              "fieldId": "customer_name",
+              "fieldValue": "={{ $json.customer_name }}"
+            },
+            {
+              "fieldId": "job_type",
+              "fieldValue": "={{ $json.job_type }}"
+            },
+            {
+              "fieldId": "technician_name",
+              "fieldValue": "={{ $json.technician_name }}"
+            },
+            {
+              "fieldId": "sentiment",
+              "fieldValue": "={{ $json.sentiment }}"
+            },
+            {
+              "fieldId": "review_sms_sent",
+              "fieldValue": "={{ $json.sentiment !== \"NEGATIVE\" }}"
+            },
+            {
+              "fieldId": "review_posted",
+              "fieldValue": false
+            },
+            {
+              "fieldId": "followup_sent",
+              "fieldValue": false
+            },
+            {
+              "fieldId": "outcome",
+              "fieldValue": "={{ $json.sentiment === \"NEGATIVE\" ? \"feedback_request_sent\" : \"review_request_sent\" }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        1980,
+        60
+      ]
+    },
+    {
+      "id": "wait-48-hours",
+      "name": "Wait 48 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 48,
+        "unit": "hours"
+      },
+      "position": [
+        2200,
+        60
+      ]
+    },
+    {
+      "id": "due-follow-up-row-supabase-",
+      "name": "Due Follow-up Row (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "n8n_review_requests",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Sentiment').first().json.job_id }}"
+            },
+            {
+              "keyName": "followup_sent",
+              "condition": "eq",
+              "keyValue": false
+            },
+            {
+              "keyName": "review_posted",
+              "condition": "eq",
+              "keyValue": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        2440,
+        60
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "id": "gbp-recent-reviews",
+      "name": "GBP Recent Reviews",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "GET",
+        "url": "https://mybusiness.googleapis.com/v4/REPLACE_WITH_GBP_ACCOUNT_ID/locations/REPLACE_WITH_GBP_LOCATION_ID/reviews",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "position": [
+        2680,
+        60
+      ]
+    },
+    {
+      "id": "review-follow-up-guard",
+      "name": "Review Follow-up Guard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const row = $('Parse Sentiment').first().json;\n  const reviews = $input.all().map(i => i.json);\n  const name = String(row.customer_name).trim().toLowerCase();\n  const sent = Date.parse(row.created_at ?? row.received_at);\n  const found = reviews.some(r => String(r.reviewer?.displayName ?? r.reviewerDisplayName ?? '').trim().toLowerCase() === name && Date.parse(r.createTime ?? r.updateTime ?? 0) >= sent - 14 * 86400000);\n  return [{ json: { ...row, review_detected: found } }];"
+      },
+      "position": [
+        2920,
+        60
+      ]
+    },
+    {
+      "id": "no-review-and-no-opt-out-",
+      "name": "No Review and No Opt-Out?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.review_detected }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "position": [
+        3160,
+        60
+      ]
+    },
+    {
+      "id": "sms-review-follow-up",
+      "name": "SMS Review Follow-up",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "sms",
+        "operation": "send",
+        "from": "REPLACE_WITH_TWILIO_E164",
+        "to": "={{ $json.customer_phone }}",
+        "message": "={{ 'Hi ' + $json.customer_name + ', just following up from ' + $json.job_type + '. If our team helped, we would appreciate a quick Google review: REPLACE_WITH_GOOGLE_REVIEW_URL. Reply STOP to opt out.' }}"
+      },
+      "position": [
+        3400,
+        60
+      ]
+    },
+    {
+      "id": "mark-follow-up-sent",
+      "name": "Mark Follow-up Sent",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "parameters": {
+        "resource": "row",
+        "operation": "update",
+        "tableId": "n8n_review_requests",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "followup_sent",
+              "fieldValue": true
+            },
+            {
+              "fieldId": "followup_sent_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Parse Sentiment').first().json.job_id }}"
+            }
+          ]
+        }
+      },
+      "position": [
+        3640,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Job Completed Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Completed Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Completed Job": {
+      "main": [
+        [
+          {
+            "node": "90-Day Dedup (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "90-Day Dedup (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Four-Hour Placeholder Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Four-Hour Placeholder Guard": {
+      "main": [
+        [
+          {
+            "node": "Not Deduplicated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Not Deduplicated?": {
+      "main": [
+        [
+          {
+            "node": "Classify Job Notes - Ministral 3B",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Classify Job Notes - Ministral 3B": {
+      "main": [
+        [
+          {
+            "node": "Parse Sentiment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Sentiment": {
+      "main": [
+        [
+          {
+            "node": "Negative Sentiment?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Negative Sentiment?": {
+      "main": [
+        [
+          {
+            "node": "SMS Private Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SMS Google Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS Private Feedback": {
+      "main": [
+        [
+          {
+            "node": "SMS Owner Negative Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS Owner Negative Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS Google Review Request": {
+      "main": [
+        [
+          {
+            "node": "Log Review Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Review Request": {
+      "main": [
+        [
+          {
+            "node": "Wait 48 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 48 Hours": {
+      "main": [
+        [
+          {
+            "node": "Due Follow-up Row (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Due Follow-up Row (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "GBP Recent Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GBP Recent Reviews": {
+      "main": [
+        [
+          {
+            "node": "Review Follow-up Guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Follow-up Guard": {
+      "main": [
+        [
+          {
+            "node": "No Review and No Opt-Out?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Review and No Opt-Out?": {
+      "main": [
+        [
+          {
+            "node": "SMS Review Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "SMS Review Follow-up": {
+      "main": [
+        [
+          {
+            "node": "Mark Follow-up Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

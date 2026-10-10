@@ -225,3 +225,7 @@ Keep `SMS_DRY_RUN=true` for public demos. Set it to `false` only when Twilio sen
 - This service uses the same Supabase project pattern as [LeadPilotAI Agent](https://github.com/HafizMuhammadSohaibUmar/LeadPilotAI), with separate tables and `business_id`.
 - The browser demo does not require live Jobber, Housecall Pro, or GBP accounts.
 - Review detection requires a verified Google Business Profile and OAuth credentials.
+
+## n8n-Only Client Deployment
+
+This repository also includes a separate inactive n8n implementation of the review-request flow. See [`n8n-build/README.md`](n8n-build/README.md) for the workflow import, Mistral API configuration, Supabase schema, webhook setup, and testing instructions. The original FastAPI implementation remains unchanged.
