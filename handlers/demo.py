@@ -219,6 +219,7 @@ DEMO_HTML = """<!doctype html>
       <div class="metric"><strong>How to evaluate</strong><span>Run happy, neutral, and complaint scenarios. Happy/neutral should produce review SMS; complaint should produce customer feedback plus owner alert.</span></div>
     </div>
     <div class="explain">The browser demo uses the manual completed-job trigger. Jobber, Housecall Pro, Google Business Profile, and Twilio are production integration points.</div>
+    <div class="explain"><strong>Two implementation modes:</strong> This page demonstrates the custom-coded review workflow. A separate, client-deployable n8n build is documented in the repository. <a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent/tree/main/n8n-build" target="_blank" rel="noreferrer">View Workflow</a> · <a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent/blob/main/n8n-build/README.md" target="_blank" rel="noreferrer">Read Technical Notes</a>. Production FSM, Supabase, Mistral, Google Business Profile, and Twilio credentials are supplied by the client.</div>
   </header>
   <main>
     <section>
