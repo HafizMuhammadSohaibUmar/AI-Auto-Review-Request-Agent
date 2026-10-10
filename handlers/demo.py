@@ -175,6 +175,11 @@ DEMO_HTML = """<!doctype html>
       margin-bottom: 8px;
     }
     .explain { margin-top: 14px; padding: 14px; border: 1px solid rgba(196,154,26,0.22); border-left: 3px solid var(--gold); border-radius: 10px; background: rgba(196,154,26,0.08); color: var(--muted); font-size: 14px; }
+    .implementation-mode { display: grid; gap: 12px; }
+    .implementation-mode strong { color: var(--ink); font-size: 15px; }
+    .implementation-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .implementation-actions a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border: 1px solid rgba(196,154,26,0.45); border-radius: 8px; background: rgba(196,154,26,0.12); color: var(--ink); text-decoration: none; font-weight: 750; }
+    .implementation-actions a:hover { background: var(--gold); color: var(--soft); }
     .metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; max-width:1180px; }
     .metric { border:1px solid var(--line); border-radius:8px; background:rgba(255,255,255,0.035); padding:14px; }
     .metric strong { display:block; color:var(--ink); margin-bottom:6px; }
@@ -219,7 +224,7 @@ DEMO_HTML = """<!doctype html>
       <div class="metric"><strong>How to evaluate</strong><span>Run happy, neutral, and complaint scenarios. Happy/neutral should produce review SMS; complaint should produce customer feedback plus owner alert.</span></div>
     </div>
     <div class="explain">The browser demo uses the manual completed-job trigger. Jobber, Housecall Pro, Google Business Profile, and Twilio are production integration points.</div>
-    <div class="explain"><strong>Two implementation modes:</strong> This page demonstrates the custom-coded review workflow. A separate, client-deployable n8n build is documented in the repository. <a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent/tree/main/n8n-build" target="_blank" rel="noreferrer">View Workflow</a> · <a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent/blob/main/n8n-build/README.md" target="_blank" rel="noreferrer">Read Technical Notes</a>. Production FSM, Supabase, Mistral, Google Business Profile, and Twilio credentials are supplied by the client.</div>
+    <div class="explain implementation-mode"><strong>Two implementation modes</strong><span>This page demonstrates the custom-coded review workflow. A separate, client-deployable n8n build is documented for clients who prefer a visual workflow.</span><div class="implementation-actions"><a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent/tree/master/n8n-build" target="_blank" rel="noreferrer">View Workflow</a><a href="https://github.com/HafizMuhammadSohaibUmar/AI-Auto-Review-Request-Agent/blob/master/n8n-build/README.md" target="_blank" rel="noreferrer">Read Technical Notes</a></div><span>Production FSM, Supabase, Mistral, Google Business Profile, and Twilio credentials are supplied by the client.</span></div>
   </header>
   <main>
     <section>
